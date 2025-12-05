@@ -165,7 +165,7 @@ export function TipForm() {
                         },
                         [],
                     ],
-                    gas: 300000n, // Explicit gas limit for bridge
+                    gas: BigInt(300000), // Explicit gas limit for bridge
                 });
 
                 setStatus(`Transaction Sent! Hash: ${bridgeTx}`);
