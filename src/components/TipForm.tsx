@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt, useConnect, useConnectors } from 'wagmi';
+import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt, useConnect, useConnectors, useDisconnect } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
@@ -37,7 +37,9 @@ export function TipForm() {
     const { isConnected: isBaseConnected, address: baseAddress } = useAccount();
     const { connected: isSolanaConnected, publicKey: solanaPublicKey } = useWallet();
     const { connectors, connect } = useConnect();
+    const { disconnect } = useDisconnect();
     const { writeContractAsync } = useWriteContract();
+    const { readContractAsync } = useReadContract();
 
     const [amount, setAmount] = useState('');
     const [recipient, setRecipient] = useState('');
@@ -111,15 +113,40 @@ export function TipForm() {
             const amountBigInt = parseUnits(finalTokenAmount, selectedToken.decimals);
             const recipientBytes32 = pubkeyToBytes32(recipientPubkey);
 
+            // Check balance first
+            setStatus('Checking balance...');
+            try {
+                const balance = await readContractAsync({
+                    address: selectedToken.address as `0x${string}`,
+                    abi: ERC20_ABI,
+                    functionName: 'balanceOf',
+                    args: [baseAddress],
+                });
+
+                if (balance < amountBigInt) {
+                    setStatus(`Insufficient ${selectedToken.symbol} balance. You have ${formatUnits(balance, selectedToken.decimals)} ${selectedToken.symbol}`);
+                    return;
+                }
+            } catch (balanceError: any) {
+                console.error('Balance check error:', balanceError);
+                setStatus('Could not check balance. Proceeding with caution...');
+            }
+
             // 1. Approve
             setStatus(`Approving ${selectedToken.symbol}...`);
-            const approveTx = await writeContractAsync({
-                address: selectedToken.address as `0x${string}`,
-                abi: ERC20_ABI,
-                functionName: 'approve',
-                args: [BASE_SEPOLIA_BRIDGE_ADDRESS, amountBigInt],
-            });
-            console.log('Approve Tx:', approveTx);
+            try {
+                const approveTx = await writeContractAsync({
+                    address: selectedToken.address as `0x${string}`,
+                    abi: ERC20_ABI,
+                    functionName: 'approve',
+                    args: [BASE_SEPOLIA_BRIDGE_ADDRESS, amountBigInt],
+                });
+                console.log('Approve Tx:', approveTx);
+            } catch (approveError: any) {
+                console.error('Approval error:', approveError);
+                setStatus(`Approval failed: ${approveError.shortMessage || approveError.message || 'Unknown error'}`);
+                return;
+            }
 
             // 2. Bridge
             setStatus(`Bridging ${selectedToken.symbol}...`);
@@ -141,7 +168,7 @@ export function TipForm() {
             setStatus(`Transaction Sent! Hash: ${bridgeTx}`);
         } catch (error: any) {
             console.error(error);
-            setStatus(`Error: ${error.message || "Unknown error"}`);
+            setStatus(`Error: ${error.shortMessage || error.message || "Unknown error"}`);
         }
     };
 
@@ -177,8 +204,18 @@ export function TipForm() {
                                 </Button>
                             </div>
                         ) : (
-                            <div className="flex justify-center custom-base-wallet-wrapper">
-                                <ConnectWallet className="hover:scale-105 transition-transform shadow-lg" />
+                            <div className="flex flex-col gap-2">
+                                <div className="flex justify-center custom-base-wallet-wrapper">
+                                    <ConnectWallet className="hover:scale-105 transition-transform shadow-lg" />
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => disconnect()}
+                                    className="w-full"
+                                >
+                                    Disconnect Wallet
+                                </Button>
                             </div>
                         )}
                     </div>
