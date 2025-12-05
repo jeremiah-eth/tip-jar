@@ -124,6 +124,14 @@ export function TipForm() {
                     args: [baseAddress],
                 });
 
+                console.log('Balance check:', {
+                    token: selectedToken.symbol,
+                    tokenAddress: selectedToken.address,
+                    userAddress: baseAddress,
+                    balance: formatUnits(balance, selectedToken.decimals),
+                    required: formatUnits(amountBigInt, selectedToken.decimals)
+                });
+
                 if (balance < amountBigInt) {
                     setStatus(`Insufficient ${selectedToken.symbol} balance. You have ${formatUnits(balance, selectedToken.decimals)} ${selectedToken.symbol}`);
                     return;
@@ -135,6 +143,12 @@ export function TipForm() {
 
             // 1. Approve
             setStatus(`Approving ${selectedToken.symbol}...`);
+            console.log('=== APPROVE TRANSACTION ===');
+            console.log('Token:', selectedToken.symbol, selectedToken.address);
+            console.log('Spender (Bridge):', BASE_SEPOLIA_BRIDGE_ADDRESS);
+            console.log('Amount:', formatUnits(amountBigInt, selectedToken.decimals), selectedToken.symbol);
+            console.log('Amount (raw):', amountBigInt.toString());
+            console.log('From:', baseAddress);
             try {
                 const approveTx = await writeContractAsync({
                     address: selectedToken.address as `0x${string}`,
@@ -151,6 +165,12 @@ export function TipForm() {
 
             // 2. Bridge
             setStatus(`Bridging ${selectedToken.symbol}...`);
+            console.log('=== BRIDGE TRANSACTION ===');
+            console.log('Bridge Address:', BASE_SEPOLIA_BRIDGE_ADDRESS);
+            console.log('Local Token:', selectedToken.address);
+            console.log('Remote Token (Solana):', selectedToken.remoteMint);
+            console.log('Recipient (Solana):', recipient);
+            console.log('Amount:', formatUnits(amountBigInt, selectedToken.decimals), selectedToken.symbol);
             try {
                 const bridgeTx = await writeContractAsync({
                     address: BASE_SEPOLIA_BRIDGE_ADDRESS,
