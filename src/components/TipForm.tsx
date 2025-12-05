@@ -182,6 +182,7 @@ export function TipForm() {
             console.log('Recipient (Solana):', recipient);
             console.log('Amount:', formatUnits(amountBigInt, selectedToken.decimals), selectedToken.symbol);
             try {
+                console.log('Calling writeContractAsync for bridge...');
                 const bridgeTx = await writeContractAsync({
                     address: BASE_SEPOLIA_BRIDGE_ADDRESS,
                     abi: BRIDGE_ABI,
@@ -198,16 +199,18 @@ export function TipForm() {
                     gas: BigInt(300000), // Explicit gas limit for bridge
                 });
 
+                console.log('Bridge Tx Hash:', bridgeTx);
                 setStatus(`Transaction Sent! Hash: ${bridgeTx}`);
             } catch (bridgeError: any) {
+                console.error('=== BRIDGE ERROR ===');
                 console.error('Bridge error:', bridgeError);
-                console.error('Bridge error details:', {
-                    message: bridgeError.message,
-                    shortMessage: bridgeError.shortMessage,
-                    cause: bridgeError.cause,
-                    details: bridgeError.details
-                });
+                console.error('Error message:', bridgeError.message);
+                console.error('Error shortMessage:', bridgeError.shortMessage);
+                console.error('Error cause:', bridgeError.cause);
+                console.error('Error details:', bridgeError.details);
+                console.error('Error stack:', bridgeError.stack);
                 setStatus(`Bridge failed: ${bridgeError.shortMessage || bridgeError.message || 'Unknown error'}. Check console for details.`);
+                return;
             }
         } catch (error: any) {
             console.error(error);
