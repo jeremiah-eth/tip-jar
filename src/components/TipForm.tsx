@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useConnect, useConnectors, useDisconnect, useConfig } from 'wagmi';
-import { readContract } from 'wagmi/actions';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useConnect, useConnectors, useDisconnect, useConfig, usePublicClient } from 'wagmi';
+import { readContract, waitForTransactionReceipt } from 'wagmi/actions';
 import { parseUnits, formatUnits } from 'viem';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
