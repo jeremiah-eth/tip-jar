@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt, useConnect, useConnectors } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
@@ -15,6 +15,7 @@ import { PublicKey } from '@solana/web3.js';
 import { ConnectWallet } from '@coinbase/onchainkit/wallet';
 import { fetchCryptoPrices, CoinPrices } from '@/lib/priceService';
 import { ArrowRightLeft } from 'lucide-react';
+import { useAppKit } from '@reown/appkit/react';
 
 const TOKENS = [
     { symbol: 'ETH', address: BASE_SEPOLIA_SOL_ADDRESS, decimals: 9, coingeckoId: 'ethereum', remoteMint: "So11111111111111111111111111111111111111112" }, // Using Wrapped SOL address for ETH for now based on previous context, or should this be WETH? Original code used BASE_SEPOLIA_SOL_ADDRESS for "Base SOL". Let's stick to that but label it clearly. Wait, user asked for ETH/USDC. Let's assume BASE_SEPOLIA_SOL_ADDRESS was a placeholder or actually Wrapped SOL. 
@@ -36,7 +37,8 @@ const TOKENS = [
 export function TipForm() {
     const { isConnected: isBaseConnected, address: baseAddress } = useAccount();
     const { connected: isSolanaConnected, publicKey: solanaPublicKey } = useWallet();
-    const { writeContractAsync } = useWriteContract();
+    const { connectors, connect } = useConnect();
+    const { open } = useAppKit();
 
     const [amount, setAmount] = useState('');
     const [recipient, setRecipient] = useState('');
@@ -154,9 +156,26 @@ export function TipForm() {
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
                         <Label>From (Base)</Label>
-                        <div className="flex justify-center custom-base-wallet-wrapper">
-                            <ConnectWallet className="hover:scale-105 transition-transform shadow-lg" />
-                        </div>
+                        {!isBaseConnected ? (
+                            <div className="flex flex-col gap-2">
+                                <Button
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg transform transition hover:scale-105"
+                                    onClick={() => connect({ connector: connectors.find(c => c.id === 'coinbaseWalletSDK') || connectors[0] })}
+                                >
+                                    Login with Base
+                                </Button>
+                                <Button
+                                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-2 px-4 rounded shadow-lg transform transition hover:scale-105"
+                                    onClick={() => open()}
+                                >
+                                    Login with Reown
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="flex justify-center custom-base-wallet-wrapper">
+                                <ConnectWallet className="hover:scale-105 transition-transform shadow-lg" />
+                            </div>
+                        )}
                     </div>
 
                     <div className="space-y-2">
