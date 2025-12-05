@@ -1,36 +1,113 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tip Jar - Base-Solana Bridge Demo
 
-## Getting Started
+A Next.js application demonstrating the new [Base-Solana Bridge](https://docs.base.org/base-chain/quickstart/base-solana-bridge) for cross-chain token transfers between Base and Solana networks.
 
-First, run the development server:
+## 🎯 Purpose
+
+This project serves as a **test and educational demonstration** of the Base-Solana bridge, showcasing both supported and unsupported token transfers to help developers understand bridge limitations.
+
+## ⚠️ Important: Token Support
+
+### ✅ Supported Tokens
+- **SOL** - Fully supported for bridging between Base Sepolia and Solana Devnet
+
+### ❌ Unsupported Tokens (Educational Purpose)
+- **USDC** - Will fail with "execution reverted"
+- **ETH** - Will fail with "execution reverted"
+
+**Why include unsupported tokens?**  
+We intentionally left USDC and ETH options in the UI for **educational purposes** to demonstrate:
+- Which assets are transferable on the Base-Solana bridge
+- What happens when attempting to bridge unsupported tokens
+- How to handle and debug bridge transaction failures
+
+The Base-Solana bridge currently **only supports SOL tokens**. Attempts to bridge other tokens will fail at the contract level.
+
+## 🚀 Features
+
+- **Dual Wallet Support**
+  - Coinbase Smart Wallet (gasless, no seed phrase)
+  - MetaMask and other injected wallets
+- **Balance Checking** - Prevents insufficient balance errors
+- **Transaction Confirmation** - Waits for approval before bridge
+- **Comprehensive Error Logging** - Detailed debugging information
+- **Disconnect Wallet** - Easy wallet management
+
+## 🛠️ Getting Started
+
+### Prerequisites
+- Node.js 18+ or Bun
+- MetaMask or Coinbase Wallet
+- SOL tokens on Base Sepolia (for successful bridging)
+
+### Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Install dependencies
+bun install
+
+# Run development server
+bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create a `.env.local` file:
 
-## Learn More
+```env
+NEXT_PUBLIC_PROJECT_ID=your_walletconnect_project_id
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
+```
 
-To learn more about Next.js, take a look at the following resources:
+## 📝 How to Test
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Successful Bridge (SOL)
+1. Connect your Base wallet (Coinbase or MetaMask)
+2. Select **SOL** from the token dropdown
+3. Enter your Solana wallet address
+4. Enter amount and click "Send"
+5. Approve both transactions (approval + bridge)
+6. Wait for confirmation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Educational Failure (USDC/ETH)
+1. Select **USDC** or **ETH** from the dropdown
+2. Attempt to bridge
+3. Observe the "execution reverted" error
+4. Check console logs for detailed error information
 
-## Deploy on Vercel
+This demonstrates why token validation is important in cross-chain applications.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🔗 Contract Addresses
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Base Sepolia
+- Bridge: `0x01824a90d32A69022DdAEcC6C5C14Ed08dB4EB9B`
+- SOL Token: `0xCace0c896714DaF7098FFD8CC54aFCFe0338b4BC`
+
+### Solana Devnet
+- Bridge Program: `7c6mteAcTXaQ1MFBCrnuzoZVTTAEfZwa6wgy4bqX3KXC`
+
+## 📚 Resources
+
+- [Base-Solana Bridge Documentation](https://docs.base.org/base-chain/quickstart/base-solana-bridge)
+- [Base Bridge Repository](https://github.com/base/bridge)
+- [Base Sepolia Explorer](https://sepolia.basescan.org/)
+- [Solana Devnet Explorer](https://explorer.solana.com/?cluster=devnet)
+
+## 🏗️ Built With
+
+- [Next.js 16](https://nextjs.org/)
+- [Wagmi](https://wagmi.sh/) - Ethereum interactions
+- [OnchainKit](https://onchainkit.xyz/) - Coinbase wallet integration
+- [Solana Web3.js](https://solana-labs.github.io/solana-web3.js/) - Solana interactions
+- [Viem](https://viem.sh/) - Ethereum utilities
+
+## 📄 License
+
+MIT
+
+## 🤝 Contributing
+
+This is an educational project. Feel free to fork and experiment with different bridge configurations!
