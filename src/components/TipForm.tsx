@@ -151,22 +151,34 @@ export function TipForm() {
 
             // 2. Bridge
             setStatus(`Bridging ${selectedToken.symbol}...`);
-            const bridgeTx = await writeContractAsync({
-                address: BASE_SEPOLIA_BRIDGE_ADDRESS,
-                abi: BRIDGE_ABI,
-                functionName: 'bridgeToken',
-                args: [
-                    {
-                        localToken: selectedToken.address as `0x${string}`,
-                        remoteToken: pubkeyToBytes32(new PublicKey(selectedToken.remoteMint)),
-                        to: recipientBytes32,
-                        remoteAmount: amountBigInt,
-                    },
-                    [],
-                ],
-            });
+            try {
+                const bridgeTx = await writeContractAsync({
+                    address: BASE_SEPOLIA_BRIDGE_ADDRESS,
+                    abi: BRIDGE_ABI,
+                    functionName: 'bridgeToken',
+                    args: [
+                        {
+                            localToken: selectedToken.address as `0x${string}`,
+                            remoteToken: pubkeyToBytes32(new PublicKey(selectedToken.remoteMint)),
+                            to: recipientBytes32,
+                            remoteAmount: amountBigInt,
+                        },
+                        [],
+                    ],
+                    gas: 300000n, // Explicit gas limit for bridge
+                });
 
-            setStatus(`Transaction Sent! Hash: ${bridgeTx}`);
+                setStatus(`Transaction Sent! Hash: ${bridgeTx}`);
+            } catch (bridgeError: any) {
+                console.error('Bridge error:', bridgeError);
+                console.error('Bridge error details:', {
+                    message: bridgeError.message,
+                    shortMessage: bridgeError.shortMessage,
+                    cause: bridgeError.cause,
+                    details: bridgeError.details
+                });
+                setStatus(`Bridge failed: ${bridgeError.shortMessage || bridgeError.message || 'Unknown error'}. Check console for details.`);
+            }
         } catch (error: any) {
             console.error(error);
             setStatus(`Error: ${error.shortMessage || error.message || "Unknown error"}`);
