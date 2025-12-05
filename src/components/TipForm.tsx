@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt, useConnect, useConnectors, useDisconnect } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useConnect, useConnectors, useDisconnect, useConfig } from 'wagmi';
+import { readContract } from 'wagmi/actions';
 import { parseUnits, formatUnits } from 'viem';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
@@ -39,7 +40,7 @@ export function TipForm() {
     const { connectors, connect } = useConnect();
     const { disconnect } = useDisconnect();
     const { writeContractAsync } = useWriteContract();
-    const { readContractAsync } = useReadContract();
+    const config = useConfig();
 
     const [amount, setAmount] = useState('');
     const [recipient, setRecipient] = useState('');
@@ -116,7 +117,7 @@ export function TipForm() {
             // Check balance first
             setStatus('Checking balance...');
             try {
-                const balance = await readContractAsync({
+                const balance = await readContract(config, {
                     address: selectedToken.address as `0x${string}`,
                     abi: ERC20_ABI,
                     functionName: 'balanceOf',
