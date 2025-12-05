@@ -376,10 +376,21 @@ export function TipForm() {
                     <Button
                         className="w-full"
                         onClick={handleTip}
-                        disabled={!isBaseConnected || !amount || !recipient || isProcessing}
+                        disabled={
+                            (selectedNetwork === 'base' && !isBaseConnected) ||
+                            (selectedNetwork === 'solana' && !isSolanaConnected) ||
+                            !amount ||
+                            !recipient ||
+                            isProcessing
+                        }
                     >
                         Send {inputMode === 'USD' ? `$${amount} USD` : `${amount} ${selectedToken.symbol}`}
                     </Button>
+                    {selectedNetwork === 'solana' && (
+                        <p className="text-sm text-yellow-600 text-center">
+                            ⚠️ Solana→Base bridging requires additional setup. Currently showing UI only.
+                        </p>
+                    )}
                     {status && <p className="text-sm text-muted-foreground text-center">{status}</p>}
                 </CardFooter>
             </Card>
