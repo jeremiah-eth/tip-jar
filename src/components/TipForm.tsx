@@ -45,6 +45,7 @@ export function TipForm() {
     const [amount, setAmount] = useState('');
     const [recipient, setRecipient] = useState('');
     const [status, setStatus] = useState<string>('');
+    const [isProcessing, setIsProcessing] = useState(false);
     const [selectedToken, setSelectedToken] = useState(TOKENS[0]);
     const [inputMode, setInputMode] = useState<'TOKEN' | 'USD'>('TOKEN'); // To toggle input
     const [prices, setPrices] = useState<CoinPrices | null>(null);
@@ -92,6 +93,10 @@ export function TipForm() {
     };
 
     const handleTip = async () => {
+        if (isProcessing) {
+            console.log('Transaction already in progress, please wait...');
+            return;
+        }
         if (!baseAddress || !recipient || !amount) return;
 
         // Ensure we calculate the correct token amount for the tx
@@ -156,10 +161,15 @@ export function TipForm() {
                     functionName: 'approve',
                     args: [BASE_SEPOLIA_BRIDGE_ADDRESS, amountBigInt],
                 });
-                console.log('Approve Tx:', approveTx);
+                console.log('Approve Tx Hash:', approveTx);
+                setStatus('Approval confirmed! Waiting before bridge...');
+
+                // Wait 5 seconds for approval to be mined
+                await new Promise(resolve => setTimeout(resolve, 5000));
             } catch (approveError: any) {
                 console.error('Approval error:', approveError);
                 setStatus(`Approval failed: ${approveError.shortMessage || approveError.message || 'Unknown error'}`);
+                setIsProcessing(false);
                 return;
             }
 
@@ -202,6 +212,8 @@ export function TipForm() {
         } catch (error: any) {
             console.error(error);
             setStatus(`Error: ${error.shortMessage || error.message || "Unknown error"}`);
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -322,7 +334,7 @@ export function TipForm() {
                     <Button
                         className="w-full"
                         onClick={handleTip}
-                        disabled={!isBaseConnected || !amount || !recipient}
+                        disabled={!isBaseConnected || !amount || !recipient || isProcessing}
                     >
                         Send {inputMode === 'USD' ? `$${amount} USD` : `${amount} ${selectedToken.symbol}`}
                     </Button>
