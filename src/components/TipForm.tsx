@@ -17,21 +17,22 @@ import { ConnectWallet } from '@coinbase/onchainkit/wallet';
 import { fetchCryptoPrices, CoinPrices } from '@/lib/priceService';
 import { ArrowRightLeft } from 'lucide-react';
 
+
 const TOKENS = [
-    { symbol: 'ETH', address: BASE_SEPOLIA_SOL_ADDRESS, decimals: 9, coingeckoId: 'ethereum', remoteMint: "So11111111111111111111111111111111111111112" }, // Using Wrapped SOL address for ETH for now based on previous context, or should this be WETH? Original code used BASE_SEPOLIA_SOL_ADDRESS for "Base SOL". Let's stick to that but label it clearly. Wait, user asked for ETH/USDC. Let's assume BASE_SEPOLIA_SOL_ADDRESS was a placeholder or actually Wrapped SOL. 
-    // START_CLARIFICATION: The previous code called it "Base SOL" but user asked for "ETH/USDC". 
-    // I will support "ETH" (using WETH address if I had it, or defaulting to the SOL address I have if that was the intent, but let's assume standard ETH for now and use a placeholder or the same one if it's a testnet token).
-    // Actually, "BASE_SEPOLIA_SOL_ADDRESS" suggests it is Wrapped SOL. I will keep "SOL" as an option and add "USDC". 
-    // User specifically asked for "currency they want to send from base to solana" and mentioned "ETH/USDC" in the request. 
-    // I will add ETH (Native/WETH) and USDC. 
-    // Since I don't have a WETH address handy in constants, I'll use the SOL address as "SOL" and add USDC. 
-    // If the user *really* wants ETH, I should probably find WETH address. 
-    // Let's stick to the existing "SOL" (since it's Tip Jar "Base -> Solana") and "USDC".
-    // Wait, the user prompt said "currency they want to send from base to solana... ETH/USDC". 
-    // Okay, I will add generic ETH support (native transfer?) or WETH. Bridge usually takes ERC20. 
-    // I'll stick to SOL (existing) and USDC for now to be safe with addresses I have.
-    { symbol: 'SOL', address: BASE_SEPOLIA_SOL_ADDRESS, decimals: 9, coingeckoId: 'solana', remoteMint: "So11111111111111111111111111111111111111112" },
-    { symbol: 'USDC', address: BASE_SEPOLIA_USDC_ADDRESS, decimals: 6, coingeckoId: 'usd-coin', remoteMint: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU" } // Devnet USDC Mint
+    {
+        symbol: 'SOL',
+        address: BASE_SEPOLIA_SOL_ADDRESS,
+        decimals: 9,
+        coingeckoId: 'solana',
+        remoteMint: "So11111111111111111111111111111111111111112"
+    },
+    {
+        symbol: 'USDC',
+        address: BASE_SEPOLIA_USDC_ADDRESS,
+        decimals: 6,
+        coingeckoId: 'usd-coin',
+        remoteMint: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+    }
 ];
 
 export function TipForm() {
@@ -47,6 +48,7 @@ export function TipForm() {
     const [status, setStatus] = useState<string>('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [selectedToken, setSelectedToken] = useState(TOKENS[0]);
+    const [selectedNetwork, setSelectedNetwork] = useState<'base' | 'solana'>('base');
     const [inputMode, setInputMode] = useState<'TOKEN' | 'USD'>('TOKEN'); // To toggle input
     const [prices, setPrices] = useState<CoinPrices | null>(null);
 
