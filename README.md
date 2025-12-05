@@ -25,24 +25,28 @@ The Base-Solana bridge currently **only supports SOL tokens**. Attempts to bridg
 ## 🚀 Features
 
 - **Bidirectional Bridging**
-  - Base → Solana (fully functional)
-  - Solana → Base (UI ready, requires Base bridge SDK setup)
-  - Network switcher to toggle between directions
+  - **Base → Solana**: Fully functional using Base Bridge contract
+  - **Solana → Base**: Fully functional using Solana Bridge program
+  - **Network Switcher**: Toggle seamlessly between networks
 - **Dual Wallet Support**
-  - Coinbase Smart Wallet (gasless, no seed phrase)
-  - MetaMask and other injected wallets
-  - Phantom, Solflare for Solana
-- **Balance Checking** - Prevents insufficient balance errors
-- **Transaction Confirmation** - Waits for approval before bridge
-- **Comprehensive Error Logging** - Detailed debugging information
-- **Disconnect Wallet** - Easy wallet management
+  - **Base**: Coinbase Smart Wallet, MetaMask, etc.
+  - **Solana**: Phantom, Solflare, etc.
+- **Smart UI**
+  - Dynamic labels and wallet connections based on network
+  - Automatic address validation
+  - Disconnect button for both wallets
+- **Safety Features**
+  - Balance checking before transactions
+  - Transaction confirmation steps
+  - Comprehensive error logging
 
 ## 🛠️ Getting Started
 
 ### Prerequisites
 - Node.js 18+ or Bun
-- MetaMask or Coinbase Wallet
-- SOL tokens on Base Sepolia (for successful bridging)
+- MetaMask or Coinbase Wallet (for Base)
+- Phantom or Solflare Wallet (for Solana)
+- SOL tokens on Base Sepolia or Solana Devnet
 
 ### Installation
 
@@ -68,21 +72,30 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
 
 ## 📝 How to Test
 
-### Successful Bridge (SOL)
-1. Connect your Base wallet (Coinbase or MetaMask)
-2. Select **SOL** from the token dropdown
-3. Enter your Solana wallet address
-4. Enter amount and click "Send"
-5. Approve both transactions (approval + bridge)
-6. Wait for confirmation
+### Base → Solana (Bridging SOL)
+1. Select **Base** network
+2. Connect your Base wallet
+3. Select **SOL** token
+4. Enter your Solana wallet address
+5. Enter amount and click "Send"
+6. Approve and wait for confirmation
 
-### Educational Failure (USDC/ETH)
-1. Select **USDC** or **ETH** from the dropdown
-2. Attempt to bridge
-3. Observe the "execution reverted" error
-4. Check console logs for detailed error information
+### Solana → Base (Bridging SOL)
+1. Select **Solana** network
+2. Connect your Solana wallet
+3. Select **SOL** token
+4. Enter your Base wallet address (0x...)
+5. Enter amount and click "Send"
+6. Approve transaction in Phantom/Solflare
+7. Wait for confirmation
 
-This demonstrates why token validation is important in cross-chain applications.
+### Educational Failure (USDC)
+1. Select **USDC** token
+2. Attempt to bridge in either direction
+3. Observe the error handling
+4. This demonstrates why token validation is important
+
+This project serves as a reference implementation for developers building on the Base-Solana bridge.
 
 ## 🔗 Contract Addresses
 
