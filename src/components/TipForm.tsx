@@ -37,7 +37,8 @@ const TOKENS = [
 
 export function TipForm() {
     const { isConnected: isBaseConnected, address: baseAddress } = useAccount();
-    const { connected: isSolanaConnected, publicKey: solanaPublicKey } = useWallet();
+    const { connected: isSolanaConnected, publicKey: solanaPublicKey, sendTransaction } = useWallet();
+    const { connection } = useConnection();
     const { connectors, connect } = useConnect();
     const { disconnect } = useDisconnect();
     const { writeContractAsync } = useWriteContract();
@@ -125,7 +126,7 @@ export function TipForm() {
             }
 
             // Calculate amount in lamports (SOL) or smallest unit
-            const amountInSmallestUnit = selectedToken.symbol === 'SOL' 
+            const amountInSmallestUnit = selectedToken.symbol === 'SOL'
                 ? BigInt(Math.floor(parseFloat(finalTokenAmount) * LAMPORTS_PER_SOL))
                 : parseUnits(finalTokenAmount, selectedToken.decimals);
 
@@ -137,7 +138,7 @@ export function TipForm() {
 
             // Get bridge program address
             const bridgeProgramId = new PublicKey('7c6mteAcTXaQ1MFBCrnuzoZVTTAEfZwa6wgy4bqX3KXC');
-            
+
             // Find bridge PDA
             const [bridgePda] = PublicKey.findProgramAddressSync(
                 [Buffer.from('bridge')],
@@ -159,23 +160,23 @@ export function TipForm() {
             );
 
             setStatus('Sending transaction to Solana network...');
-            
+
             // Send transaction
             const signature = await sendTransaction(transaction, connection);
             console.log('Transaction signature:', signature);
 
             setStatus('Waiting for confirmation...');
-            
+
             // Wait for confirmation
             const confirmation = await connection.confirmTransaction(signature, 'confirmed');
-            
+
             if (confirmation.value.err) {
                 throw new Error('Transaction failed: ' + JSON.stringify(confirmation.value.err));
             }
 
             console.log('Transaction confirmed!');
             setStatus(`✅ Bridge transaction sent! Signature: ${signature.slice(0, 8)}...`);
-            
+
         } catch (error: any) {
             console.error('Solana bridge error:', error);
             setStatus(`Error: ${error.message || 'Unknown error'}`);
