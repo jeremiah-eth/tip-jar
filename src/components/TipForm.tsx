@@ -156,8 +156,16 @@ export function TipForm() {
                     <div className="space-y-2">
                         <Label>From (Base)</Label>
                         {!isBaseConnected ? (
-                            <div className="flex justify-center">
-                                <ConnectWallet className="hover:scale-105 transition-transform shadow-lg" />
+                            <div className="flex flex-col gap-2">
+                                <Button
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg transform transition hover:scale-105"
+                                    onClick={() => connect({ connector: connectors.find(c => c.id === 'coinbaseWalletSDK') || connectors[0] })}
+                                >
+                                    Login with Base
+                                </Button>
+                                <div className="flex justify-center">
+                                    <ConnectWallet className="hover:scale-105 transition-transform shadow-lg" />
+                                </div>
                             </div>
                         ) : (
                             <div className="flex justify-center custom-base-wallet-wrapper">
