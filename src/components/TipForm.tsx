@@ -161,11 +161,20 @@ export function TipForm() {
                                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg transform transition hover:scale-105"
                                     onClick={() => connect({ connector: connectors.find(c => c.id === 'coinbaseWalletSDK') || connectors[0] })}
                                 >
-                                    Login with Base
+                                    Connect to Base
                                 </Button>
-                                <div className="flex justify-center">
-                                    <ConnectWallet className="hover:scale-105 transition-transform shadow-lg" />
-                                </div>
+                                <Button
+                                    variant="outline"
+                                    className="w-full font-bold py-2 px-4 rounded shadow-lg transform transition hover:scale-105"
+                                    onClick={() => {
+                                        const injectedConnector = connectors.find(c => c.type === 'injected' && c.id !== 'coinbaseWalletSDK');
+                                        if (injectedConnector) {
+                                            connect({ connector: injectedConnector });
+                                        }
+                                    }}
+                                >
+                                    Connect Wallet (MetaMask, etc.)
+                                </Button>
                             </div>
                         ) : (
                             <div className="flex justify-center custom-base-wallet-wrapper">

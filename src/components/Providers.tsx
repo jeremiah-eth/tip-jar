@@ -4,7 +4,7 @@ import { OnchainKitProvider } from '@coinbase/onchainkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { baseSepolia } from 'viem/chains';
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { coinbaseWallet } from 'wagmi/connectors';
+import { coinbaseWallet, injected } from 'wagmi/connectors';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
@@ -14,7 +14,7 @@ import { useMemo, useState } from 'react';
 
 import '@solana/wallet-adapter-react-ui/styles.css';
 
-// Create wagmi config with Coinbase Wallet
+// Create wagmi config with multiple wallet options
 export const wagmiConfig = createConfig({
     chains: [baseSepolia],
     connectors: [
@@ -22,6 +22,10 @@ export const wagmiConfig = createConfig({
             appName: 'Tip Jar',
             preference: 'smartWalletOnly',
         }),
+        injected({
+            target: 'metaMask',
+        }),
+        injected(), // Generic injected wallet support
     ],
     transports: {
         [baseSepolia.id]: http(),
