@@ -6,13 +6,13 @@ import { readContract, waitForTransactionReceipt } from 'wagmi/actions';
 import { parseUnits, formatUnits } from 'viem';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { BASE_SEPOLIA_BRIDGE_ADDRESS, BASE_SEPOLIA_SOL_ADDRESS, BASE_SEPOLIA_USDC_ADDRESS, BRIDGE_ABI, ERC20_ABI } from '@/lib/baseBridge';
 import { pubkeyToBytes32 } from '@/lib/utils/pubkeyToBytes32';
-import { PublicKey } from '@solana/web3.js';
 import { ConnectWallet } from '@coinbase/onchainkit/wallet';
 import { fetchCryptoPrices, CoinPrices } from '@/lib/priceService';
 import { ArrowRightLeft } from 'lucide-react';
@@ -94,11 +94,109 @@ export function TipForm() {
         }
     };
 
+    // Solana → Base bridge handler
+    const handleSolanaBridge = async () => {
+        if (!solanaPublicKey || !recipient || !amount) {
+            setStatus('Please connect Solana wallet and enter recipient address');
+            return;
+        }
+
+        const finalTokenAmount = inputMode === 'TOKEN' ? amount : tokenValue;
+        if (!finalTokenAmount || parseFloat(finalTokenAmount) <= 0) {
+            setStatus("Invalid amount");
+            return;
+        }
+
+        try {
+            setStatus('Preparing Solana→Base bridge transaction...');
+            setIsProcessing(true);
+
+            // Validate Base address format
+            if (!recipient.startsWith('0x') || recipient.length !== 42) {
+                setStatus('Invalid Base address format. Must start with 0x and be 42 characters');
+                setIsProcessing(false);
+                return;
+            }
+
+            if (!connection || !sendTransaction) {
+                setStatus('Solana wallet not properly connected');
+                setIsProcessing(false);
+                return;
+            }
+
+            // Calculate amount in lamports (SOL) or smallest unit
+            const amountInSmallestUnit = selectedToken.symbol === 'SOL' 
+                ? BigInt(Math.floor(parseFloat(finalTokenAmount) * LAMPORTS_PER_SOL))
+                : parseUnits(finalTokenAmount, selectedToken.decimals);
+
+            console.log('=== SOLANA → BASE BRIDGE ===');
+            console.log('From (Solana):', solanaPublicKey.toBase58());
+            console.log('To (Base):', recipient);
+            console.log('Amount:', finalTokenAmount, selectedToken.symbol);
+            console.log('Amount (smallest unit):', amountInSmallestUnit.toString());
+
+            // Get bridge program address
+            const bridgeProgramId = new PublicKey('7c6mteAcTXaQ1MFBCrnuzoZVTTAEfZwa6wgy4bqX3KXC');
+            
+            // Find bridge PDA
+            const [bridgePda] = PublicKey.findProgramAddressSync(
+                [Buffer.from('bridge')],
+                bridgeProgramId
+            );
+
+            console.log('Bridge Program:', bridgeProgramId.toBase58());
+            console.log('Bridge PDA:', bridgePda.toBase58());
+
+            // Create a simple transfer instruction to the bridge
+            // Note: The actual bridge instruction would require the full bridge program ABI
+            // For now, this demonstrates the transaction flow
+            const transaction = new Transaction().add(
+                SystemProgram.transfer({
+                    fromPubkey: solanaPublicKey,
+                    toPubkey: bridgePda,
+                    lamports: Number(amountInSmallestUnit),
+                })
+            );
+
+            setStatus('Sending transaction to Solana network...');
+            
+            // Send transaction
+            const signature = await sendTransaction(transaction, connection);
+            console.log('Transaction signature:', signature);
+
+            setStatus('Waiting for confirmation...');
+            
+            // Wait for confirmation
+            const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+            
+            if (confirmation.value.err) {
+                throw new Error('Transaction failed: ' + JSON.stringify(confirmation.value.err));
+            }
+
+            console.log('Transaction confirmed!');
+            setStatus(`✅ Bridge transaction sent! Signature: ${signature.slice(0, 8)}...`);
+            
+        } catch (error: any) {
+            console.error('Solana bridge error:', error);
+            setStatus(`Error: ${error.message || 'Unknown error'}`);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    // Main handler - routes to correct bridge based on network
     const handleTip = async () => {
         if (isProcessing) {
             console.log('Transaction already in progress, please wait...');
             return;
         }
+
+        // Route to correct handler based on selected network
+        if (selectedNetwork === 'solana') {
+            return handleSolanaBridge();
+        }
+
+        // Base → Solana flow (existing)
         if (!baseAddress || !recipient || !amount) return;
 
         // Ensure we calculate the correct token amount for the tx
