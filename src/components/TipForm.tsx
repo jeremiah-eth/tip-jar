@@ -357,20 +357,6 @@ export function TipForm() {
                         />
                     </div>
 
-                    {selectedNetwork === 'base' && (
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-center">
-                                <Label>Or connect Solana wallet</Label>
-                                <WalletMultiButton />
-                            </div>
-                            {isSolanaConnected && solanaPublicKey && (
-                                <Button variant="outline" size="sm" onClick={() => setRecipient(solanaPublicKey.toBase58())}>
-                                    Use Connected Wallet
-                                </Button>
-                            )}
-                        </div>
-                    )}
-
                 </CardContent>
                 <CardFooter className="flex flex-col gap-2">
                     <Button
