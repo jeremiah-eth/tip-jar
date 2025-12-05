@@ -2,6 +2,7 @@ import { baseSepolia } from "viem/chains";
 
 export const BASE_SEPOLIA_BRIDGE_ADDRESS = "0x01824a90d32A69022DdAEcC6C5C14Ed08dB4EB9B";
 export const BASE_SEPOLIA_SOL_ADDRESS = "0xCace0c896714DaF7098FFD8CC54aFCFe0338b4BC";
+export const BASE_SEPOLIA_USDC_ADDRESS = "0x036CbD53842c5426634e7929541eC2318f3dCF7e"; // Base Sepolia USDC
 
 export const BRIDGE_ABI = [
     {

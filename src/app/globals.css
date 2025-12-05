@@ -63,7 +63,31 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Custom Wallet Button Styles */
+@layer components {
+
+  /* OnchainKit Connect Wallet Button Override */
+  .ock-connect-wallet-button {
+    @apply transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl font-bold rounded-lg !important;
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--chart-1)) 100%);
+    color: white !important;
+    border: none !important;
+  }
+
+  /* Solana Wallet Adapter Button Override */
+  .wallet-adapter-button {
+    @apply transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl font-bold rounded-lg !important;
+    background: linear-gradient(135deg, #9945FF 0%, #14F195 100%) !important;
+    /* Solana Gradient */
+  }
+
+  .wallet-adapter-button-trigger {
+    background: linear-gradient(135deg, #9945FF 0%, #14F195 100%) !important;
   }
 }
