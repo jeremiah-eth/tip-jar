@@ -37,7 +37,7 @@ const TOKENS = [
 
 export function TipForm() {
     const { isConnected: isBaseConnected, address: baseAddress } = useAccount();
-    const { connected: isSolanaConnected, publicKey: solanaPublicKey, sendTransaction } = useWallet();
+    const { connected: isSolanaConnected, publicKey: solanaPublicKey, sendTransaction, disconnect: disconnectSolana } = useWallet();
     const { connection } = useConnection();
     const { connectors, connect } = useConnect();
     const { disconnect } = useDisconnect();
@@ -398,8 +398,20 @@ export function TipForm() {
                             )
                         ) : (
                             // Solana wallet connection
-                            <div className="flex justify-center">
-                                <WalletMultiButton className="!bg-purple-600 hover:!bg-purple-700 !text-white !font-bold !py-2 !px-4 !rounded !shadow-lg !transform !transition hover:!scale-105" />
+                            <div className="flex flex-col gap-2">
+                                <div className="flex justify-center">
+                                    <WalletMultiButton className="!bg-purple-600 hover:!bg-purple-700 !text-white !font-bold !py-2 !px-4 !rounded !shadow-lg !transform !transition hover:!scale-105" />
+                                </div>
+                                {isSolanaConnected && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => disconnectSolana()}
+                                        className="w-full"
+                                    >
+                                        Disconnect Wallet
+                                    </Button>
+                                )}
                             </div>
                         )}
                     </div>
