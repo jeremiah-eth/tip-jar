@@ -13,10 +13,9 @@ This project serves as a **test and educational demonstration** of the Base-Sola
 
 ### ❌ Unsupported Tokens (Educational Purpose)
 - **USDC** - Will fail with "execution reverted"
-- **ETH** - Will fail with "execution reverted"
 
 **Why include unsupported tokens?**  
-We intentionally left USDC and ETH options in the UI for **educational purposes** to demonstrate:
+We intentionally left USDC in the UI for **educational purposes** to demonstrate:
 - Which assets are transferable on the Base-Solana bridge
 - What happens when attempting to bridge unsupported tokens
 - How to handle and debug bridge transaction failures
@@ -25,9 +24,14 @@ The Base-Solana bridge currently **only supports SOL tokens**. Attempts to bridg
 
 ## 🚀 Features
 
+- **Bidirectional Bridging**
+  - Base → Solana (fully functional)
+  - Solana → Base (UI ready, requires Base bridge SDK setup)
+  - Network switcher to toggle between directions
 - **Dual Wallet Support**
   - Coinbase Smart Wallet (gasless, no seed phrase)
   - MetaMask and other injected wallets
+  - Phantom, Solflare for Solana
 - **Balance Checking** - Prevents insufficient balance errors
 - **Transaction Confirmation** - Waits for approval before bridge
 - **Comprehensive Error Logging** - Detailed debugging information
