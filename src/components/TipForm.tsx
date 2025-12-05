@@ -238,46 +238,69 @@ export function TipForm() {
         <div className="w-full max-w-md space-y-8">
             <Card>
                 <CardHeader>
-                    <CardTitle>Tip Jar</CardTitle>
-                    <CardDescription>Send {selectedToken.symbol} from Base to Solana</CardDescription>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle>Tip Jar</CardTitle>
+                            <CardDescription>
+                                Send {selectedToken.symbol} from {selectedNetwork === 'base' ? 'Base to Solana' : 'Solana to Base'}
+                            </CardDescription>
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedNetwork(selectedNetwork === 'base' ? 'solana' : 'base')}
+                            className="flex items-center gap-2"
+                        >
+                            <ArrowRightLeft className="h-4 w-4" />
+                            {selectedNetwork === 'base' ? 'Solana' : 'Base'}
+                        </Button>
+                    </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
-                        <Label>From (Base)</Label>
-                        {!isBaseConnected ? (
-                            <div className="flex flex-col gap-2">
-                                <Button
-                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg transform transition hover:scale-105"
-                                    onClick={() => connect({ connector: connectors.find(c => c.id === 'coinbaseWalletSDK') || connectors[0] })}
-                                >
-                                    Connect to Base
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    className="w-full font-bold py-2 px-4 rounded shadow-lg transform transition hover:scale-105"
-                                    onClick={() => {
-                                        const injectedConnector = connectors.find(c => c.type === 'injected' && c.id !== 'coinbaseWalletSDK');
-                                        if (injectedConnector) {
-                                            connect({ connector: injectedConnector });
-                                        }
-                                    }}
-                                >
-                                    Connect Wallet (MetaMask, etc.)
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col gap-2">
-                                <div className="flex justify-center custom-base-wallet-wrapper">
-                                    <ConnectWallet className="hover:scale-105 transition-transform shadow-lg" />
+                        <Label>From ({selectedNetwork === 'base' ? 'Base' : 'Solana'})</Label>
+                        {selectedNetwork === 'base' ? (
+                            // Base wallet connection
+                            !isBaseConnected ? (
+                                <div className="flex flex-col gap-2">
+                                    <Button
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg transform transition hover:scale-105"
+                                        onClick={() => connect({ connector: connectors.find(c => c.id === 'coinbaseWalletSDK') || connectors[0] })}
+                                    >
+                                        Connect to Base
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full font-bold py-2 px-4 rounded shadow-lg transform transition hover:scale-105"
+                                        onClick={() => {
+                                            const injectedConnector = connectors.find(c => c.type === 'injected' && c.id !== 'coinbaseWalletSDK');
+                                            if (injectedConnector) {
+                                                connect({ connector: injectedConnector });
+                                            }
+                                        }}
+                                    >
+                                        Connect Wallet (MetaMask, etc.)
+                                    </Button>
                                 </div>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => disconnect()}
-                                    className="w-full"
-                                >
-                                    Disconnect Wallet
-                                </Button>
+                            ) : (
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex justify-center custom-base-wallet-wrapper">
+                                        <ConnectWallet className="hover:scale-105 transition-transform shadow-lg" />
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => disconnect()}
+                                        className="w-full"
+                                    >
+                                        Disconnect Wallet
+                                    </Button>
+                                </div>
+                            )
+                        ) : (
+                            // Solana wallet connection
+                            <div className="flex justify-center">
+                                <WalletMultiButton className="!bg-purple-600 hover:!bg-purple-700 !text-white !font-bold !py-2 !px-4 !rounded !shadow-lg !transform !transition hover:!scale-105" />
                             </div>
                         )}
                     </div>
@@ -326,25 +349,27 @@ export function TipForm() {
                     </div>
 
                     <div className="space-y-2">
-                        <Label>To (Solana)</Label>
+                        <Label>To ({selectedNetwork === 'base' ? 'Solana' : 'Base'})</Label>
                         <Input
-                            placeholder="Solana Wallet Address"
+                            placeholder={selectedNetwork === 'base' ? 'Solana Wallet Address' : 'Base Wallet Address (0x...)'}
                             value={recipient}
                             onChange={(e) => setRecipient(e.target.value)}
                         />
                     </div>
 
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                            <Label>Or connect Solana wallet</Label>
-                            <WalletMultiButton />
+                    {selectedNetwork === 'base' && (
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                                <Label>Or connect Solana wallet</Label>
+                                <WalletMultiButton />
+                            </div>
+                            {isSolanaConnected && solanaPublicKey && (
+                                <Button variant="outline" size="sm" onClick={() => setRecipient(solanaPublicKey.toBase58())}>
+                                    Use Connected Wallet
+                                </Button>
+                            )}
                         </div>
-                        {isSolanaConnected && solanaPublicKey && (
-                            <Button variant="outline" size="sm" onClick={() => setRecipient(solanaPublicKey.toBase58())}>
-                                Use Connected Wallet
-                            </Button>
-                        )}
-                    </div>
+                    )}
 
                 </CardContent>
                 <CardFooter className="flex flex-col gap-2">
