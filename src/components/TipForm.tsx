@@ -162,10 +162,22 @@ export function TipForm() {
                     args: [BASE_SEPOLIA_BRIDGE_ADDRESS, amountBigInt],
                 });
                 console.log('Approve Tx Hash:', approveTx);
-                setStatus('Approval confirmed! Waiting before bridge...');
+                setStatus('Waiting for approval confirmation...');
 
-                // Wait 5 seconds for approval to be mined
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                // Wait for approval to be confirmed on-chain
+                console.log('Waiting for approval to be mined...');
+                const approvalReceipt = await waitForTransactionReceipt(config, {
+                    hash: approveTx,
+                    confirmations: 2,
+                });
+                console.log('Approval confirmed in block:', approvalReceipt.blockNumber);
+                if (approvalReceipt.status !== 'success') {
+                    setStatus('Approval failed');
+                    setIsProcessing(false);
+                    return;
+                }
+                setStatus('Approval confirmed! Preparing bridge...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
             } catch (approveError: any) {
                 console.error('Approval error:', approveError);
                 setStatus(`Approval failed: ${approveError.shortMessage || approveError.message || 'Unknown error'}`);
