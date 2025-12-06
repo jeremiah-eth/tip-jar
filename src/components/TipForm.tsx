@@ -184,13 +184,34 @@ export function TipForm() {
                 });
             }
 
+
             console.log('Solana Bridge Sig:', signature);
             setStatus(`✅ Bridge initiated! Tx: ${signature.slice(0, 8)}...`);
             setAmount('');
 
         } catch (error: any) {
             console.error('Solana bridge error:', error);
-            setStatus(`Error: ${error.message}`);
+
+            // Phantom-specific error handling
+            if (error.message?.includes('User rejected')) {
+                setStatus('❌ Transaction cancelled by user');
+            } else if (error.message?.includes('disconnected port') ||
+                error.message?.includes('Unexpected error')) {
+                setStatus(
+                    '⚠️ Wallet connection lost. Please:\n' +
+                    '1. Disconnect wallet\n' +
+                    '2. Refresh the page\n' +
+                    '3. Reconnect and try again'
+                );
+            } else if (error.message?.includes('insufficient')) {
+                setStatus(`❌ Insufficient balance: ${error.message}`);
+            } else if (error.message?.includes('Wallet not connected')) {
+                setStatus('❌ Please connect your Solana wallet first');
+            } else if (error.message?.includes('Invalid') && error.message?.includes('address')) {
+                setStatus('❌ Invalid recipient address. Please check the Base address (0x...)');
+            } else {
+                setStatus(`❌ Bridge error: ${error.message || 'Unknown error'}`);
+            }
         } finally {
             setIsProcessing(false);
         }
