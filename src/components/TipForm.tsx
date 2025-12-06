@@ -11,11 +11,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { BASE_SEPOLIA_BRIDGE_ADDRESS, BASE_SEPOLIA_SOL_ADDRESS, BASE_SEPOLIA_USDC_ADDRESS, BRIDGE_ABI, ERC20_ABI } from '@/lib/baseBridge';
+import { CCIP_ROUTER_ADDRESS_BASE_SEPOLIA, BASE_SEPOLIA_SOL_ADDRESS, BASE_SEPOLIA_USDC_ADDRESS, bridgeBaseToSolanaCCIP, getCCIPExplorerLink, ERC20_ABI } from '@/lib/baseBridge';
 import { pubkeyToBytes32 } from '@/lib/utils/pubkeyToBytes32';
 import { ConnectWallet } from '@coinbase/onchainkit/wallet';
 import { fetchCryptoPrices, CoinPrices } from '@/lib/priceService';
 import { ArrowRightLeft } from 'lucide-react';
+import { bridgeSolToBase, bridgeSplToBase } from '@/lib/solanaBridge';
 
 
 const TOKENS = [
@@ -35,6 +36,16 @@ const TOKENS = [
     }
 ];
 
+// Interface for Pending Claims
+interface PendingBridge {
+    txHash: string;
+    amount: string;
+    token: string;
+    recipient: string;
+    timestamp: number;
+    status: 'pending' | 'ready' | 'claiming' | 'completed' | 'failed';
+}
+
 export function TipForm() {
     const { isConnected: isBaseConnected, address: baseAddress } = useAccount();
     const { connected: isSolanaConnected, publicKey: solanaPublicKey, sendTransaction, disconnect: disconnectSolana } = useWallet();
@@ -48,6 +59,8 @@ export function TipForm() {
     const [recipient, setRecipient] = useState('');
     const [status, setStatus] = useState<string>('');
     const [isProcessing, setIsProcessing] = useState(false);
+    const [pendingClaims, setPendingClaims] = useState<PendingBridge[]>([]);
+
     const [selectedToken, setSelectedToken] = useState(TOKENS[0]);
     const [selectedNetwork, setSelectedNetwork] = useState<'base' | 'solana'>('base');
     const [inputMode, setInputMode] = useState<'TOKEN' | 'USD'>('TOKEN'); // To toggle input
@@ -80,12 +93,9 @@ export function TipForm() {
 
     const handleAmountChange = (val: string) => {
         setAmount(val);
-    };
+    }
 
     const toggleInputMode = () => {
-        // When toggling, we want to keep the "value" consistent. 
-        // If switching to USD, set amount to current calculated USD value.
-        // If switching to TOKEN, set amount to current calculated Token value.
         if (inputMode === 'TOKEN') {
             setAmount(usdValue);
             setInputMode('USD');
@@ -93,15 +103,39 @@ export function TipForm() {
             setAmount(tokenValue);
             setInputMode('TOKEN');
         }
+    }
+
+    // Load pending claims on mount
+    useEffect(() => {
+        const stored = localStorage.getItem('pendingBridges');
+        if (stored) {
+            try {
+                setPendingClaims(JSON.parse(stored));
+            } catch (e) {
+                console.error("Failed to parse pending bridges", e);
+            }
+        }
+    }, []);
+
+    // Save pending claims on change
+    useEffect(() => {
+        localStorage.setItem('pendingBridges', JSON.stringify(pendingClaims));
+    }, [pendingClaims]);
+
+    const checkClaimStatus = async (bridge: PendingBridge) => {
+        // For CCIP, we basically just want to check if it's done or confirmed basically
+        // But users will mostly check the explorer.
+        // We can implement a status check if needed via an API, but for now we rely on the explorer link.
+        // This function is kept for compatibility if we want to add auto-status-update later.
     };
 
-    // Solana → Base bridge handler
     const handleSolanaBridge = async () => {
-        if (!solanaPublicKey || !recipient || !amount) {
-            setStatus('Please connect Solana wallet and enter recipient address');
+        if (!isSolanaConnected || !solanaPublicKey) {
+            setStatus("Please connect Solana wallet");
             return;
         }
 
+        // Ensure we calculate the correct token amount for the tx
         const finalTokenAmount = inputMode === 'TOKEN' ? amount : tokenValue;
         if (!finalTokenAmount || parseFloat(finalTokenAmount) <= 0) {
             setStatus("Invalid amount");
@@ -109,83 +143,53 @@ export function TipForm() {
         }
 
         try {
-            setStatus('Preparing Solana→Base bridge transaction...');
             setIsProcessing(true);
+            setStatus('Preparing Solana transaction...');
 
-            // Validate Base address format
-            if (!recipient.startsWith('0x') || recipient.length !== 42) {
-                setStatus('Invalid Base address format. Must start with 0x and be 42 characters');
-                setIsProcessing(false);
-                return;
+            const amountNum = parseFloat(finalTokenAmount);
+
+            // Construct wallet context
+            const walletContext = {
+                publicKey: solanaPublicKey,
+                signTransaction: async (tx: Transaction) => tx,
+                sendTransaction: sendTransaction
+            };
+
+            let signature = '';
+
+            if (selectedToken.symbol === 'SOL') {
+                signature = await bridgeSolToBase({
+                    connection,
+                    wallet: walletContext,
+                    amount: amountNum,
+                    recipient: recipient,
+                    network: 'devnet'
+                });
+            } else {
+                signature = await bridgeSplToBase({
+                    connection,
+                    wallet: walletContext,
+                    mint: new PublicKey(selectedToken.remoteMint),
+                    amount: amountNum,
+                    recipient: recipient,
+                    remoteToken: selectedToken.address, // Base token address
+                    decimals: selectedToken.decimals,
+                    network: 'devnet'
+                });
             }
 
-            if (!connection || !sendTransaction) {
-                setStatus('Solana wallet not properly connected');
-                setIsProcessing(false);
-                return;
-            }
-
-            // Calculate amount in lamports (SOL) or smallest unit
-            const amountInSmallestUnit = selectedToken.symbol === 'SOL'
-                ? BigInt(Math.floor(parseFloat(finalTokenAmount) * LAMPORTS_PER_SOL))
-                : parseUnits(finalTokenAmount, selectedToken.decimals);
-
-            console.log('=== SOLANA → BASE BRIDGE ===');
-            console.log('From (Solana):', solanaPublicKey.toBase58());
-            console.log('To (Base):', recipient);
-            console.log('Amount:', finalTokenAmount, selectedToken.symbol);
-            console.log('Amount (smallest unit):', amountInSmallestUnit.toString());
-
-            // Get bridge program address
-            const bridgeProgramId = new PublicKey('7c6mteAcTXaQ1MFBCrnuzoZVTTAEfZwa6wgy4bqX3KXC');
-
-            // Find bridge PDA
-            const [bridgePda] = PublicKey.findProgramAddressSync(
-                [Buffer.from('bridge')],
-                bridgeProgramId
-            );
-
-            console.log('Bridge Program:', bridgeProgramId.toBase58());
-            console.log('Bridge PDA:', bridgePda.toBase58());
-
-            // Create a simple transfer instruction to the bridge
-            // Note: The actual bridge instruction would require the full bridge program ABI
-            // For now, this demonstrates the transaction flow
-            const transaction = new Transaction().add(
-                SystemProgram.transfer({
-                    fromPubkey: solanaPublicKey,
-                    toPubkey: bridgePda,
-                    lamports: Number(amountInSmallestUnit),
-                })
-            );
-
-            setStatus('Sending transaction to Solana network...');
-
-            // Send transaction
-            const signature = await sendTransaction(transaction, connection);
-            console.log('Transaction signature:', signature);
-
-            setStatus('Waiting for confirmation...');
-
-            // Wait for confirmation
-            const confirmation = await connection.confirmTransaction(signature, 'confirmed');
-
-            if (confirmation.value.err) {
-                throw new Error('Transaction failed: ' + JSON.stringify(confirmation.value.err));
-            }
-
-            console.log('Transaction confirmed!');
-            setStatus(`✅ Bridge transaction sent! Signature: ${signature.slice(0, 8)}...`);
+            console.log('Solana Bridge Sig:', signature);
+            setStatus(`Success! Tx: ${signature.slice(0, 8)}...`);
+            setAmount('');
 
         } catch (error: any) {
             console.error('Solana bridge error:', error);
-            setStatus(`Error: ${error.message || 'Unknown error'}`);
+            setStatus(`Error: ${error.message}`);
         } finally {
             setIsProcessing(false);
         }
     };
 
-    // Main handler - routes to correct bridge based on network
     const handleTip = async () => {
         if (isProcessing) {
             console.log('Transaction already in progress, please wait...');
@@ -197,7 +201,7 @@ export function TipForm() {
             return handleSolanaBridge();
         }
 
-        // Base → Solana flow (existing)
+        // Base → Solana flow (CCIP)
         if (!baseAddress || !recipient || !amount) return;
 
         // Ensure we calculate the correct token amount for the tx
@@ -208,6 +212,7 @@ export function TipForm() {
         }
 
         try {
+            setIsProcessing(true);
             setStatus('Validating...');
             let recipientPubkey: PublicKey;
             try {
@@ -218,7 +223,6 @@ export function TipForm() {
             }
 
             const amountBigInt = parseUnits(finalTokenAmount, selectedToken.decimals);
-            const recipientBytes32 = pubkeyToBytes32(recipientPubkey);
 
             // Check balance first
             setStatus('Checking balance...');
@@ -228,14 +232,6 @@ export function TipForm() {
                     abi: ERC20_ABI,
                     functionName: 'balanceOf',
                     args: [baseAddress],
-                });
-
-                console.log('Balance check:', {
-                    token: selectedToken.symbol,
-                    tokenAddress: selectedToken.address,
-                    userAddress: baseAddress,
-                    balance: formatUnits(balance, selectedToken.decimals),
-                    required: formatUnits(amountBigInt, selectedToken.decimals)
                 });
 
                 if (balance < amountBigInt) {
@@ -248,36 +244,26 @@ export function TipForm() {
             }
 
             // 1. Approve
-            setStatus(`Approving ${selectedToken.symbol}...`);
-            console.log('=== APPROVE TRANSACTION ===');
-            console.log('Token:', selectedToken.symbol, selectedToken.address);
-            console.log('Spender (Bridge):', BASE_SEPOLIA_BRIDGE_ADDRESS);
-            console.log('Amount:', formatUnits(amountBigInt, selectedToken.decimals), selectedToken.symbol);
-            console.log('Amount (raw):', amountBigInt.toString());
-            console.log('From:', baseAddress);
+            setStatus(`Approving ${selectedToken.symbol} for CCIP...`);
             try {
                 const approveTx = await writeContractAsync({
                     address: selectedToken.address as `0x${string}`,
                     abi: ERC20_ABI,
                     functionName: 'approve',
-                    args: [BASE_SEPOLIA_BRIDGE_ADDRESS, amountBigInt],
+                    args: [CCIP_ROUTER_ADDRESS_BASE_SEPOLIA, amountBigInt],
                 });
-                console.log('Approve Tx Hash:', approveTx);
                 setStatus('Waiting for approval confirmation...');
 
-                // Wait for approval to be confirmed on-chain
-                console.log('Waiting for approval to be mined...');
                 const approvalReceipt = await waitForTransactionReceipt(config, {
                     hash: approveTx,
                     confirmations: 2,
                 });
-                console.log('Approval confirmed in block:', approvalReceipt.blockNumber);
                 if (approvalReceipt.status !== 'success') {
                     setStatus('Approval failed');
                     setIsProcessing(false);
                     return;
                 }
-                setStatus('Approval confirmed! Preparing bridge...');
+                setStatus('Approval confirmed! Initiating CCIP Bridge...');
                 await new Promise(resolve => setTimeout(resolve, 2000));
             } catch (approveError: any) {
                 console.error('Approval error:', approveError);
@@ -286,43 +272,34 @@ export function TipForm() {
                 return;
             }
 
-            // 2. Bridge
-            setStatus(`Bridging ${selectedToken.symbol}...`);
-            console.log('=== BRIDGE TRANSACTION ===');
-            console.log('Bridge Address:', BASE_SEPOLIA_BRIDGE_ADDRESS);
-            console.log('Local Token:', selectedToken.address);
-            console.log('Remote Token (Solana):', selectedToken.remoteMint);
-            console.log('Recipient (Solana):', recipient);
-            console.log('Amount:', formatUnits(amountBigInt, selectedToken.decimals), selectedToken.symbol);
+            // 2. Bridge via CCIP
+            setStatus(`Bridging ${selectedToken.symbol} via Chainlink CCIP...`);
             try {
-                console.log('Calling writeContractAsync for bridge...');
-                const bridgeTx = await writeContractAsync({
-                    address: BASE_SEPOLIA_BRIDGE_ADDRESS,
-                    abi: BRIDGE_ABI,
-                    functionName: 'bridgeToken',
-                    args: [
-                        {
-                            localToken: selectedToken.address as `0x${string}`,
-                            remoteToken: pubkeyToBytes32(new PublicKey(selectedToken.remoteMint)),
-                            to: recipientBytes32,
-                            remoteAmount: amountBigInt,
-                        },
-                        [],
-                    ],
-                    gas: BigInt(300000), // Explicit gas limit for bridge
+                // Call our new CCIP wrapper
+                const bridgeTx = await bridgeBaseToSolanaCCIP(config, {
+                    token: selectedToken.address,
+                    amount: amountBigInt,
+                    recipient: recipient // Solana address as string
                 });
 
-                console.log('Bridge Tx Hash:', bridgeTx);
+                console.log('CCIP Bridge Tx Hash:', bridgeTx);
                 setStatus(`Transaction Sent! Hash: ${bridgeTx}`);
+
+                // Add to pending claims
+                const newClaim: PendingBridge = {
+                    txHash: bridgeTx,
+                    amount: finalTokenAmount,
+                    token: selectedToken.symbol,
+                    recipient: recipient,
+                    timestamp: Date.now(),
+                    status: 'pending'
+                };
+                setPendingClaims(prev => [newClaim, ...prev]);
+                setStatus('✅ CCIP Bridge Initiated! Funds will auto-arrive on Solana.');
             } catch (bridgeError: any) {
-                console.error('=== BRIDGE ERROR ===');
-                console.error('Bridge error:', bridgeError);
-                console.error('Error message:', bridgeError.message);
-                console.error('Error shortMessage:', bridgeError.shortMessage);
-                console.error('Error cause:', bridgeError.cause);
-                console.error('Error details:', bridgeError.details);
-                console.error('Error stack:', bridgeError.stack);
-                setStatus(`Bridge failed: ${bridgeError.shortMessage || bridgeError.message || 'Unknown error'}. Check console for details.`);
+                console.error('=== CCIP BRIDGE ERROR ===');
+                console.error(bridgeError);
+                setStatus(`Bridge failed: ${bridgeError.message || 'Unknown error'}.`);
                 return;
             }
         } catch (error: any) {
@@ -483,6 +460,54 @@ export function TipForm() {
                     >
                         Send {inputMode === 'USD' ? `$${amount} USD` : `${amount} ${selectedToken.symbol}`}
                     </Button>
+
+                    {/* Pending Claims Section */}
+                    {pendingClaims.length > 0 && (
+                        <div className="mt-8 pt-6 border-t border-gray-100">
+                            <h3 className="text-lg font-semibold mb-4">Pending Claims (Base → Solana)</h3>
+                            <div className="space-y-3">
+                                {pendingClaims.map((claim) => (
+                                    <div key={claim.txHash} className="p-3 bg-gray-50 rounded-lg text-sm border border-gray-200">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <span className="font-medium">{claim.amount} {claim.token}</span>
+                                                <div className="text-xs text-gray-500">{new Date(claim.timestamp).toLocaleString()}</div>
+                                            </div>
+                                            <span className={`px-2 py-1 rounded text-xs font-semibold
+                                        ${claim.status === 'ready' ? 'bg-green-100 text-green-800' :
+                                                    claim.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                                        claim.status === 'failed' ? 'bg-red-100 text-red-800' :
+                                                            'bg-yellow-100 text-yellow-800'}`}>
+                                                {claim.status.toUpperCase()}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                            <a
+                                                href={getCCIPExplorerLink(claim.txHash)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-xs text-blue-500 hover:text-blue-700 flex items-center bg-blue-50 px-3 py-1 rounded"
+                                            >
+                                                View on CCIP Explorer ↗
+                                            </a>
+
+                                            <a
+                                                href={`https://sepolia.basescan.org/tx/${claim.txHash}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-xs text-gray-500 hover:text-gray-700 flex items-center"
+                                            >
+                                                BaseScan ↗
+                                            </a>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Status Message */}
                     {status && <p className="text-sm text-muted-foreground text-center">{status}</p>}
                 </CardFooter>
             </Card>
