@@ -159,7 +159,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 
 ### Base Sepolia
 - CCIP Router: `0xD3b06cEbF099CE7DA4AcCf578aaebFDBd6e88a93`
-- CCIP-BnM (Mock SOL): `0x88a2D7A512f43a021F9856A88E12a67a2181555e`
+- CCIP-BnM (Mock SOL): `0x88A2d74F47a237a62e7A51cdDa67270CE381555e`
 
 ### Solana Devnet
 - Chain Selector: `16423721717087811551`
