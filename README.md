@@ -82,22 +82,39 @@ bun run dev
 Open [http://localhost:3000](http://localhost:3000) to see the application.
 
 
-## 🧪 Educational Testing Scenarios
+## 🚶 Walkthrough
 
-### Successful Transfer (CCIP-BnM as "SOL")
-1. Select **SOL** token (actually CCIP-BnM test token)
-2. Enter recipient Solana address
-3. Approve token → Estimate fee → Bridge
-4. Observe successful cross-chain transfer (~2-5 minutes)
-5. Track on CCIP Explorer: https://ccip.chain.link/
+### 1. Base → Solana (New CCIP Flow)
 
-### Educational Failure (USDC)
-1. Select **USDC** token
-2. Attempt to bridge from Base Sepolia to Solana Devnet
+1.  **Connect Wallets**: Connect both Base (Sender) and Solana (Recipient) wallets.
+2.  **Select Token**: Choose **SOL (CCIP-BnM)**.
+    *   *Note: Using USDC will trigger an educational error.*
+3.  **Send**: Enter amount and click "Send".
+4.  **Approve**: Wallet will ask to Approve the CCIP Router to spend your tokens.
+5.  **Bridge**: Wallet will ask to sign the CCIP `ccipSend` transaction.
+6.  **Wait**:
+    *   The UI will show a "Pending Claim" entry.
+    *   **Auto-Delivery**: Chainlink CCIP network will pick up the message and deliver it to Solana automatically (~20 mins).
+    *   **Tracking**: Click **"View on CCIP Explorer"** in the UI to track the message status in real-time.
+
+> [!TIP]
+> You do not need to keep the page open. The funds will arrive in your Solana wallet automatically once finalized.
+
+### 2. Solana → Base (Custom Bridge)
+
+1.  Connect Solana wallet.
+2.  Select "SOL" or "USDC".
+3.  Enter Amount and Base Recipient Address (`0x...`).
+4.  App constructs a transaction with the specific `bridge_sol` or `bridge_spl` instruction.
+5.  Transaction is sent to Solana Devnet.
+
+### 3. Educational Walkthrough (USDC)
+1. Select **USDC** token on Base.
+2. Attempt to bridge to Solana.
 3. Transaction will fail at `ccipSend` with:
    - "Destination chain not supported for this token"
    - Or transaction revert during fee estimation
-4. This demonstrates:
+4. **This demonstrates**:
    - Why token validation is critical before user approvals
    - How to handle and communicate bridge limitations
    - The importance of checking CCIP documentation for supported lanes
