@@ -10,7 +10,7 @@ This project serves as a **test and educational demonstration** of cross-chain b
 
 ### ✅ Supported (Works on Testnet)
 - **SOL (CCIP-BnM)** - Fully supported via CCIP lane between Base Sepolia and Solana Devnet
-  - Base Sepolia address: `0x88A2D74f47a237A62E7a584bDc3C0F3E34369C40`
+  - Base Sepolia address: `0x88a2D7A512f43a021F9856A88E12a67a2181555e`
   - Solana Devnet mint: Native SOL
   - Uses Chainlink CCIP Router for secure cross-chain transfers
 
@@ -82,7 +82,7 @@ bun run dev
 Open [http://localhost:3000](http://localhost:3000) to see the application.
 
 
-## 🚶 Walkthrough
+## 🚶 Educational Walkthrough
 
 ### 1. Base → Solana (New CCIP Flow)
 
@@ -108,7 +108,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 4.  App constructs a transaction with the specific `bridge_sol` or `bridge_spl` instruction.
 5.  Transaction is sent to Solana Devnet.
 
-### 3. Educational Walkthrough (USDC)
+### 3. Educational Failure Walkthrough (USDC)
 1. Select **USDC** token on Base.
 2. Attempt to bridge to Solana.
 3. Transaction will fail at `ccipSend` with:
@@ -152,7 +152,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 
 ### Base Sepolia
 - CCIP Router: `0xD3b06cEbF099CE7DA4AcCf578aaebFDBd6e88a93`
-- CCIP-BnM (Mock SOL): `0x88A2D74f47a237A62E7a584bDc3C0F3E34369C40`
+- CCIP-BnM (Mock SOL): `0x88a2D7A512f43a021F9856A88E12a67a2181555e`
 
 ### Solana Devnet
 - Chain Selector: `16423721717087811551`
