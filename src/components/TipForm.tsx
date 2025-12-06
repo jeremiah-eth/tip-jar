@@ -280,7 +280,7 @@ export function TipForm() {
                 setStatus(
                     '❌ Insufficient ETH for gas fees.\n' +
                     'You need at least 0.001 ETH on Base Sepolia.\n\n' +
-                    'Get ETH from: https://faucets.chain.link/base-sepolia'
+                    'Get ETH from: https://docs.chain.link/ccip/test-tokens'
                 );
                 setIsProcessing(false);
                 return;
@@ -303,7 +303,7 @@ export function TipForm() {
                     setStatus(
                         `❌ You don't have any ${selectedToken.symbol} tokens!\n\n` +
                         `Get test tokens from:\n` +
-                        `https://faucets.chain.link/base-sepolia`
+                        `https://docs.chain.link/ccip/test-tokens`
                     );
                     setIsProcessing(false);
                     return;
