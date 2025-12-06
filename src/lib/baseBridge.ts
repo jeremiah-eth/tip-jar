@@ -12,7 +12,7 @@ export const CHAIN_SELECTOR_SOLANA_DEVNET = BigInt("16423721717087811551");
 
 // Token Addresses on Base Sepolia
 export const BASE_SEPOLIA_USDC_ADDRESS = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
-export const BASE_SEPOLIA_SOL_ADDRESS = "0x88A2d74F47a237a62e7A584bdC3C0f3e34369C40"; // Using CCIP-BnM as mock SOL
+export const BASE_SEPOLIA_SOL_ADDRESS = "0x88A2D74f47a237A62E7a584bDc3C0F3E34369C40"; // Using CCIP-BnM as mock SOL
 
 // Default "Receiver" for CCIP to Solana is the System Program ID (generic handle)
 // The ACTUAL recipient is inside the extraArgs

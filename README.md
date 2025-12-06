@@ -10,7 +10,7 @@ This project serves as a **test and educational demonstration** of cross-chain b
 
 ### ✅ Supported (Works on Testnet)
 - **SOL (CCIP-BnM)** - Fully supported via CCIP lane between Base Sepolia and Solana Devnet
-  - Base Sepolia address: `0x88A2d74F47a237a62e7A584bdC3C0f3e34369C40`
+  - Base Sepolia address: `0x88A2D74f47a237A62E7a584bDc3C0F3E34369C40`
   - Solana Devnet mint: Native SOL
   - Uses Chainlink CCIP Router for secure cross-chain transfers
 
@@ -135,7 +135,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 
 ### Base Sepolia
 - CCIP Router: `0xD3b06cEbF099CE7DA4AcCf578aaebFDBd6e88a93`
-- CCIP-BnM (Mock SOL): `0x88A2d74F47a237a62e7A584bdC3C0f3e34369C40`
+- CCIP-BnM (Mock SOL): `0x88A2D74f47a237A62E7a584bDc3C0F3E34369C40`
 
 ### Solana Devnet
 - Chain Selector: `16423721717087811551`
