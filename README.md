@@ -45,9 +45,9 @@ We intentionally left USDC in the UI for **educational purposes** to demonstrate
 
 ## 🚀 Features
 
-- **Bidirectional Bridging**
-  - **Base → Solana**: Fully functional using **Chainlink CCIP**
-  - **Solana → Base**: Fully functional using Custom Solana Bridge Program
+- **Hybrid Bridging Architecture**
+  - **Base → Solana**: Chainlink CCIP with auto-delivery
+  - **Solana → Base**: Original Base Bridge with Merkle proofs
   - **Network Switcher**: Toggle seamlessly between networks
 - **Dual Wallet Support**
   - **Base**: Coinbase Smart Wallet, MetaMask, etc.
@@ -100,13 +100,20 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 > [!TIP]
 > You do not need to keep the page open. The funds will arrive in your Solana wallet automatically once finalized.
 
-### 2. Solana → Base (Custom Bridge)
+### 2. Solana → Base (Original Base Bridge)
 
-1.  Connect Solana wallet.
-2.  Select "SOL" or "USDC".
-3.  Enter Amount and Base Recipient Address (`0x...`).
-4.  App constructs a transaction with the specific `bridge_sol` or `bridge_spl` instruction.
-5.  Transaction is sent to Solana Devnet.
+1.  **Connect Wallets**: Connect both Solana (Sender) and Base (Recipient) wallets.
+2.  **Select Token**: Choose **SOL** or **USDC**.
+3.  **Enter Details**: Enter amount and Base recipient address (`0x...`).
+4.  **Bridge**: Sign the bridge transaction on Solana.
+5.  **Wait**:
+    *   Transaction is sent to Solana Devnet
+    *   Bridge program locks tokens and creates outgoing message
+    *   Merkle proof is generated automatically
+    *   Funds arrive on Base after finalization
+
+> [!NOTE]
+> This uses the original Base bridge architecture with Merkle proofs.
 
 ### 3. Educational Failure Walkthrough (USDC)
 1. Select **USDC** token on Base.

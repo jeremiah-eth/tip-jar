@@ -25,7 +25,7 @@ const TOKENS = [
         address: BASE_SEPOLIA_SOL_ADDRESS,
         decimals: 9,
         coingeckoId: 'solana',
-        remoteMint: "So11111111111111111111111111111111111111112"
+        remoteMint: "So11111111111111111111111111111111111111112" // Native SOL
     },
     {
         symbol: 'USDC',
@@ -142,6 +142,12 @@ export function TipForm() {
             return;
         }
 
+        // Validate recipient is a valid Base address
+        if (!recipient || !recipient.match(/^0x[0-9a-fA-F]{40}$/)) {
+            setStatus("Please enter a valid Base address (0x...)");
+            return;
+        }
+
         try {
             setIsProcessing(true);
             setStatus('Preparing Solana transaction...');
@@ -179,7 +185,7 @@ export function TipForm() {
             }
 
             console.log('Solana Bridge Sig:', signature);
-            setStatus(`Success! Tx: ${signature.slice(0, 8)}...`);
+            setStatus(`✅ Bridge initiated! Tx: ${signature.slice(0, 8)}...`);
             setAmount('');
 
         } catch (error: any) {
@@ -464,7 +470,7 @@ export function TipForm() {
                     {/* Pending Claims Section */}
                     {pendingClaims.length > 0 && (
                         <div className="mt-8 pt-6 border-t border-gray-100">
-                            <h3 className="text-lg font-semibold mb-4">Pending Claims (Base → Solana)</h3>
+                            <h3 className="text-lg font-semibold mb-4">Pending CCIP Bridges</h3>
                             <div className="space-y-3">
                                 {pendingClaims.map((claim) => (
                                     <div key={claim.txHash} className="p-3 bg-gray-50 rounded-lg text-sm border border-gray-200">
