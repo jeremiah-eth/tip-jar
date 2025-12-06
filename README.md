@@ -1,32 +1,53 @@
 # Tip Jar - Base-Solana Bridge Demo
 
-A Next.js application demonstrating the new [Base-Solana Bridge](https://docs.base.org/base-chain/quickstart/base-solana-bridge) for cross-chain token transfers between Base and Solana networks.
+A Next.js application demonstrating cross-chain token transfers between Base and Solana networks using **Chainlink CCIP** (Base → Solana) and a custom Solana Bridge Program (Solana → Base).
 
 ## 🎯 Purpose
 
-This project serves as a **test and educational demonstration** of the Base-Solana bridge, showcasing both supported and unsupported token transfers to help developers understand bridge limitations.
+This project serves as a **test and educational demonstration** of cross-chain bridging using Chainlink CCIP, showcasing both supported and unsupported token routes to help developers understand CCIP lane limitations.
 
-## ⚠️ Important: Token Support
+## ⚠️ Important: CCIP Lane & Token Support
 
-### ✅ Supported Tokens
-- **SOL** - Fully supported for bridging between Base Sepolia and Solana Devnet
+### ✅ Supported (Works on Testnet)
+- **SOL (CCIP-BnM)** - Fully supported via CCIP lane between Base Sepolia and Solana Devnet
+  - Base Sepolia address: `0x88A2d74F47a237a62e7A584bdC3C0f3e34369C40`
+  - Solana Devnet mint: Native SOL
+  - Uses Chainlink CCIP Router for secure cross-chain transfers
 
-### ❌ Unsupported Tokens (Educational Purpose)
-- **USDC** - Will fail with "execution reverted"
+### ❌ Unsupported (Educational Purpose Only)
+- **USDC** - Will fail with "destination chain not supported" or transaction revert
+  - Base Sepolia address: `0x036CbD53842c5426634e7929541eC2318f3dCF7e`
+  - Solana Devnet mint: `4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU`
+  - **Why it fails**: No direct CCIP lane exists between Base Sepolia and Solana Devnet for USDC
 
 **Why include unsupported tokens?**  
 We intentionally left USDC in the UI for **educational purposes** to demonstrate:
-- Which assets are transferable on the Base-Solana bridge
-- What happens when attempting to bridge unsupported tokens
-- How to handle and debug bridge transaction failures
 
-The Base-Solana bridge currently **only supports SOL tokens**. Attempts to bridge other tokens will fail at the contract level.
+1. **CCIP Lane Configuration**
+   - Not all tokens are supported on all cross-chain routes
+   - CCIP uses "lanes" (chain pairs) with specific token allowlists
+   - Base Sepolia → Solana Devnet lane only supports CCIP-BnM test tokens
+
+2. **Real-World Bridge Limitations**
+   - Production bridges have token restrictions based on liquidity and risk
+   - Token support varies by chain pair (e.g., USDC works Base Sepolia → Ethereum Sepolia)
+   - Always verify token support before attempting cross-chain transfers
+
+3. **Error Handling Patterns**
+   - How CCIP router reverts for unsupported tokens
+   - Importance of pre-validation before user approvals
+   - User experience patterns for handling failed transactions
+
+4. **Smart Contract Validation**
+   - Token pools must exist on both source and destination chains
+   - Token Admin Registry manages cross-chain token configurations
+   - Burn/Mint token model requires proper pool setup
 
 ## 🚀 Features
 
 - **Bidirectional Bridging**
-  - **Base → Solana**: Fully functional using Base Bridge contract
-  - **Solana → Base**: Fully functional using Solana Bridge program
+  - **Base → Solana**: Fully functional using **Chainlink CCIP**
+  - **Solana → Base**: Fully functional using Custom Solana Bridge Program
   - **Network Switcher**: Toggle seamlessly between networks
 - **Dual Wallet Support**
   - **Base**: Coinbase Smart Wallet, MetaMask, etc.
@@ -60,66 +81,81 @@ bun run dev
 
 Open [http://localhost:3000](http://localhost:3000) to see the application.
 
-### Environment Variables
 
-Create a `.env.local` file:
+## 🧪 Educational Testing Scenarios
 
-```env
-NEXT_PUBLIC_PROJECT_ID=your_walletconnect_project_id
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
-```
-
-## 📝 How to Test
-
-### Base → Solana (Bridging SOL)
-1. Select **Base** network
-2. Connect your Base wallet
-3. Select **SOL** token
-4. Enter your Solana wallet address
-5. Enter amount and click "Send"
-6. Approve and wait for confirmation
-
-### Solana → Base (Bridging SOL)
-1. Select **Solana** network
-2. Connect your Solana wallet
-3. Select **SOL** token
-4. Enter your Base wallet address (0x...)
-5. Enter amount and click "Send"
-6. Approve transaction in Phantom/Solflare
-7. Wait for confirmation
+### Successful Transfer (CCIP-BnM as "SOL")
+1. Select **SOL** token (actually CCIP-BnM test token)
+2. Enter recipient Solana address
+3. Approve token → Estimate fee → Bridge
+4. Observe successful cross-chain transfer (~2-5 minutes)
+5. Track on CCIP Explorer: https://ccip.chain.link/
 
 ### Educational Failure (USDC)
 1. Select **USDC** token
-2. Attempt to bridge in either direction
-3. Observe the error handling
-4. This demonstrates why token validation is important
+2. Attempt to bridge from Base Sepolia to Solana Devnet
+3. Transaction will fail at `ccipSend` with:
+   - "Destination chain not supported for this token"
+   - Or transaction revert during fee estimation
+4. This demonstrates:
+   - Why token validation is critical before user approvals
+   - How to handle and communicate bridge limitations
+   - The importance of checking CCIP documentation for supported lanes
 
-This project serves as a reference implementation for developers building on the Base-Solana bridge.
+## 🔍 Key Learning Points
+
+**For Developers:**
+- Always consult [CCIP Directory](https://docs.chain.link/ccip/directory/testnet) for supported tokens per lane
+- Implement pre-flight checks to validate token support before user actions
+- CCIP token support is per-lane, not global (a token may work on some routes but not others)
+- Test tokens (CCIP-BnM, LINK) have broader support than production tokens
+
+**CCIP Architecture Insights:**
+- Each token needs a Token Pool (Burn/Mint or Lock/Release) on both chains
+- Token Admin Registry manages cross-chain token configurations
+- Risk Management Network (RMN) provides additional security layer
+- Fees are calculated based on token type, amount, and destination
+
+## 📚 Further Reading
+
+- [Chainlink CCIP Documentation](https://docs.chain.link/ccip)
+- [Base Sepolia Supported Lanes](https://docs.chain.link/ccip/directory/testnet/chain/ethereum-testnet-sepolia-base-1)
+- [USDC Cross-Chain Support](https://docs.chain.link/ccip/directory/testnet/token/USDC)
+- [Solana CCIP Integration](https://docs.chain.link/ccip/tutorials/svm)
+
+---
+
+**Note:** This is a testnet demonstration. In production, you would:
+1. Query CCIP Router for supported tokens before showing UI options
+2. Implement proper error boundaries and user notifications
+3. Use only officially supported token routes
+4. Add slippage protection and fee caps
 
 ## 🔗 Contract Addresses
 
 ### Base Sepolia
-- Bridge: `0x01824a90d32A69022DdAEcC6C5C14Ed08dB4EB9B`
-- SOL Token: `0xCace0c896714DaF7098FFD8CC54aFCFe0338b4BC`
+- CCIP Router: `0xD3b06cEbF099CE7DA4AcCf578aaebFDBd6e88a93`
+- CCIP-BnM (Mock SOL): `0x88A2d74F47a237a62e7A584bdC3C0f3e34369C40`
 
 ### Solana Devnet
-- Bridge Program: `7c6mteAcTXaQ1MFBCrnuzoZVTTAEfZwa6wgy4bqX3KXC`
+- Chain Selector: `16423721717087811551`
+- Bridge Program ID: `7c6mteAcTXaQ1MFBCrnuzoZVTTAEfZwa6wgy4bqX3KXC`
+- Gas Fee Receiver: `AFs1LCbodhvwpgX3u3URLsud6R1XMSaMiQ5LtXw4GKYT`
 
 ## 📚 Resources
 
 - [Base-Solana Bridge Documentation](https://docs.base.org/base-chain/quickstart/base-solana-bridge)
 - [Base Bridge Repository](https://github.com/base/bridge)
-- [Base Sepolia Explorer](https://sepolia.basescan.org/)
 - [Solana Devnet Explorer](https://explorer.solana.com/?cluster=devnet)
 
 ## 🏗️ Built With
 
-- [Next.js 16](https://nextjs.org/)
-- [Wagmi](https://wagmi.sh/) - Ethereum interactions
-- [OnchainKit](https://onchainkit.xyz/) - Coinbase wallet integration
-- [Solana Web3.js](https://solana-labs.github.io/solana-web3.js/) - Solana interactions
-- [Viem](https://viem.sh/) - Ethereum utilities
+- **Framework**: [Next.js 16](https://nextjs.org/)
+- **Core Protocol**: [Chainlink CCIP](https://docs.chain.link/ccip)
+- **EVM Interop**: [Wagmi](https://wagmi.sh/) + [Viem](https://viem.sh/)
+- **Solana Interop**: [Solana Web3.js](https://solana-labs.github.io/solana-web3.js/) + [Wallet Adapter](https://github.com/solana-labs/wallet-adapter)
+- **Wallet Auth**: [OnchainKit](https://onchainkit.xyz/) (Coinbase)
+- **UI/Styling**: [Shadcn UI](https://ui.shadcn.com/) + [Tailwind CSS](https://tailwindcss.com/)
 
 ## 📄 License
 
