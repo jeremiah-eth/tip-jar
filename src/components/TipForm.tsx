@@ -54,6 +54,7 @@ export function TipForm() {
     const { disconnect } = useDisconnect();
     const { writeContractAsync } = useWriteContract();
     const config = useConfig();
+    const publicClient = usePublicClient();
 
     const [amount, setAmount] = useState('');
     const [recipient, setRecipient] = useState('');
@@ -240,19 +241,54 @@ export function TipForm() {
 
         try {
             setIsProcessing(true);
+
+            console.log('=== BASE → SOLANA BRIDGE DEBUG ===');
+            console.log('User Address:', baseAddress);
+            console.log('Token:', selectedToken.symbol);
+            console.log('Token Address:', selectedToken.address);
+            console.log('Amount:', finalTokenAmount);
+            console.log('Decimals:', selectedToken.decimals);
+            console.log('Recipient (Solana):', recipient);
+
+            // Validate Solana address
             setStatus('Validating...');
             let recipientPubkey: PublicKey;
             try {
                 recipientPubkey = new PublicKey(recipient);
+                console.log('✅ Valid Solana address');
             } catch (e) {
                 setStatus('Invalid Solana address');
+                setIsProcessing(false);
                 return;
             }
 
             const amountBigInt = parseUnits(finalTokenAmount, selectedToken.decimals);
+            console.log('Amount (BigInt):', amountBigInt.toString());
 
-            // Check balance first
-            setStatus('Checking balance...');
+            // CHECK ETH BALANCE FIRST
+            if (!publicClient) {
+                setStatus('❌ Unable to connect to network');
+                setIsProcessing(false);
+                return;
+            }
+
+            setStatus('Checking ETH balance for gas...');
+            const ethBalance = await publicClient.getBalance({ address: baseAddress });
+            console.log('ETH Balance:', formatUnits(ethBalance, 18), 'ETH');
+
+            if (ethBalance < parseUnits('0.001', 18)) {
+                setStatus(
+                    '❌ Insufficient ETH for gas fees.\n' +
+                    'You need at least 0.001 ETH on Base Sepolia.\n\n' +
+                    'Get ETH from: https://faucets.chain.link/base-sepolia'
+                );
+                setIsProcessing(false);
+                return;
+            }
+            console.log('✅ ETH balance sufficient');
+
+            // Check token balance
+            setStatus('Checking token balance...');
             try {
                 const balance = await readContract(config, {
                     address: selectedToken.address as `0x${string}`,
@@ -261,17 +297,56 @@ export function TipForm() {
                     args: [baseAddress],
                 });
 
-                if (balance < amountBigInt) {
-                    setStatus(`Insufficient ${selectedToken.symbol} balance. You have ${formatUnits(balance, selectedToken.decimals)} ${selectedToken.symbol}`);
+                console.log('Token Balance:', formatUnits(balance, selectedToken.decimals), selectedToken.symbol);
+
+                if (balance === 0n) {
+                    setStatus(
+                        `❌ You don't have any ${selectedToken.symbol} tokens!\n\n` +
+                        `Get test tokens from:\n` +
+                        `https://faucets.chain.link/base-sepolia`
+                    );
+                    setIsProcessing(false);
                     return;
                 }
+
+                if (balance < amountBigInt) {
+                    setStatus(
+                        `❌ Insufficient ${selectedToken.symbol} balance.\n` +
+                        `You have: ${formatUnits(balance, selectedToken.decimals)} ${selectedToken.symbol}\n` +
+                        `Trying to send: ${formatUnits(amountBigInt, selectedToken.decimals)} ${selectedToken.symbol}`
+                    );
+                    setIsProcessing(false);
+                    return;
+                }
+
+                console.log('✅ Token balance sufficient');
             } catch (balanceError: any) {
                 console.error('Balance check error:', balanceError);
-                setStatus('Could not check balance. Proceeding with caution...');
+
+                // Check if token contract exists
+                const code = await publicClient.getBytecode({
+                    address: selectedToken.address as `0x${string}`
+                });
+
+                if (!code || code === '0x') {
+                    setStatus(
+                        `❌ Token contract not found at ${selectedToken.address}\n` +
+                        `The token might not exist on Base Sepolia, or the address is wrong.`
+                    );
+                    setIsProcessing(false);
+                    return;
+                }
+
+                setStatus('⚠️ Could not check balance. Proceeding with caution...');
             }
 
-            // 1. Approve
-            setStatus(`Approving ${selectedToken.symbol} for CCIP...`);
+            // APPROVE WITH MORE DETAILS
+            setStatus(`Approving ${selectedToken.symbol}...`);
+            console.log('=== APPROVAL TRANSACTION ===');
+            console.log('Token Contract:', selectedToken.address);
+            console.log('Spender (CCIP Router):', CCIP_ROUTER_ADDRESS_BASE_SEPOLIA);
+            console.log('Amount to approve:', formatUnits(amountBigInt, selectedToken.decimals));
+
             try {
                 const approveTx = await writeContractAsync({
                     address: selectedToken.address as `0x${string}`,
@@ -279,28 +354,56 @@ export function TipForm() {
                     functionName: 'approve',
                     args: [CCIP_ROUTER_ADDRESS_BASE_SEPOLIA, amountBigInt],
                 });
+
+                console.log('✅ Approve tx sent:', approveTx);
                 setStatus('Waiting for approval confirmation...');
 
                 const approvalReceipt = await waitForTransactionReceipt(config, {
                     hash: approveTx,
                     confirmations: 2,
                 });
+
+                console.log('Approval receipt:', approvalReceipt);
+
                 if (approvalReceipt.status !== 'success') {
                     setStatus('Approval failed');
                     setIsProcessing(false);
                     return;
                 }
-                setStatus('Approval confirmed! Initiating CCIP Bridge...');
+
+                console.log('✅ Approval confirmed!');
+                setStatus('Approval confirmed! Preparing CCIP bridge...');
                 await new Promise(resolve => setTimeout(resolve, 2000));
+
             } catch (approveError: any) {
-                console.error('Approval error:', approveError);
-                setStatus(`Approval failed: ${approveError.shortMessage || approveError.message || 'Unknown error'}`);
+                console.error('=== APPROVAL ERROR ===');
+                console.error('Full error:', approveError);
+                console.error('Error name:', approveError.name);
+                console.error('Error message:', approveError.message);
+                console.error('Error cause:', approveError.cause);
+                console.error('Error details:', approveError.details);
+
+                // More helpful error messages
+                let errorMsg = 'Approval failed';
+
+                if (approveError.message?.includes('insufficient funds')) {
+                    errorMsg = '❌ Insufficient ETH for gas fees. Get Base Sepolia ETH from faucet.';
+                } else if (approveError.message?.includes('user rejected') || approveError.message?.includes('User rejected')) {
+                    errorMsg = '❌ Transaction rejected in wallet';
+                } else if (approveError.message?.includes('nonce')) {
+                    errorMsg = '❌ Nonce error. Try refreshing the page.';
+                } else {
+                    errorMsg = `❌ Approval failed: ${approveError.shortMessage || approveError.message}`;
+                }
+
+                setStatus(errorMsg);
                 setIsProcessing(false);
                 return;
             }
 
             // 2. Bridge via CCIP
             setStatus(`Bridging ${selectedToken.symbol} via Chainlink CCIP...`);
+            console.log('=== CCIP BRIDGE TRANSACTION ===');
             try {
                 // Call our new CCIP wrapper
                 const bridgeTx = await bridgeBaseToSolanaCCIP(config, {
@@ -309,7 +412,7 @@ export function TipForm() {
                     recipient: recipient // Solana address as string
                 });
 
-                console.log('CCIP Bridge Tx Hash:', bridgeTx);
+                console.log('✅ CCIP Bridge Tx Hash:', bridgeTx);
                 setStatus(`Transaction Sent! Hash: ${bridgeTx}`);
 
                 // Add to pending claims
