@@ -5,8 +5,9 @@ import { getPublicClient, writeContract, waitForTransactionReceipt } from 'wagmi
 import type { Config } from 'wagmi';
 
 // --- CCIP CONSTANTS ---
-export const CCIP_ROUTER_ADDRESS_BASE_SEPOLIA = "0x114A20A123fdfcf5ac400c46cb5C235fcF580C57";
-export const CHAIN_SELECTOR_BASE_SEPOLIA = BigInt("5224473277236331295");
+export const CCIP_ROUTER_ADDRESS_BASE_SEPOLIA = "0xD3b06cEbF099CE7DA4AcCf578aaebFDBd6e88a93";
+export const CHAIN_SELECTOR_BASE_SEPOLIA = BigInt("10344971235874465080");
+// export const CHAIN_SELECTOR_SOLANA_DEVNET = BigInt("16423721717087811551"); // Confirmed correct
 export const CHAIN_SELECTOR_SOLANA_DEVNET = BigInt("16423721717087811551");
 
 // Token Addresses on Base Sepolia
