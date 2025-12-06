@@ -299,7 +299,7 @@ export function TipForm() {
 
                 console.log('Token Balance:', formatUnits(balance, selectedToken.decimals), selectedToken.symbol);
 
-                if (balance === 0n) {
+                if (balance === BigInt(0)) {
                     setStatus(
                         `❌ You don't have any ${selectedToken.symbol} tokens!\n\n` +
                         `Get test tokens from:\n` +
